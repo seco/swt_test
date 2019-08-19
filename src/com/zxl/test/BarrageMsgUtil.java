@@ -1,5 +1,8 @@
 package com.zxl.test;
 
+import org.eclipse.swt.widgets.Display;
+import org.eclipse.swt.widgets.Text;
+
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -8,53 +11,70 @@ import java.net.Socket;
 import java.util.Arrays;
 
 
-public class Test {
-    public static void main(String[] args) throws IOException, InterruptedException {
-        Socket socket = new Socket("openbarrage.douyutv.com", 8601);
+public class BarrageMsgUtil {
+    public static void start(Display display, Text nickNameText, Text contentText) throws IOException, InterruptedException {
 
-        //发送登录请求(登入85894房间)
-        String loginCMD = "type@=loginreq/roomid@=85894/";
-        send(loginCMD, socket);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    Socket socket = new Socket("openbarrage.douyutv.com", 8601);
+                    //发送登录请求(登入85894房间)
+                    String loginCMD = "type@=loginreq/roomid@=85894/";
+                    send(loginCMD, socket);
 
-        //读取登录请求消息
-        byte[] bytes = read(socket);
-        String msg = new String(Arrays.copyOfRange(bytes, 0, bytes.length));
-        System.out.println(msg);
+                    //读取登录请求消息
+                    byte[] bytes = read(socket);
+                    String msg = new String(Arrays.copyOfRange(bytes, 0, bytes.length));
+                    System.out.println(msg);
 
 
-        //加入弹幕分组开始接收弹幕
-        String joinGroupCMD = "type@=joingroup/rid@=9999/gid@=-9999/";
-        send(joinGroupCMD, socket);
+                    //加入弹幕分组开始接收弹幕
+                    String joinGroupCMD = "type@=joingroup/rid@=9999/gid@=-9999/";
+                    send(joinGroupCMD, socket);
 
-        int i = 0;
-        //循环读取弹幕消息开始
-        while (true) {
-            byte[] msgBytes = read(socket);
-            String s = new String(Arrays.copyOfRange(msgBytes, 0, msgBytes.length));
-            System.out.println(s);
+                    int i = 0;
+                    //循环读取弹幕消息开始
+                    while (true) {
+                        byte[] msgBytes = read(socket);
+                        String s = new String(Arrays.copyOfRange(msgBytes, 0, msgBytes.length));
+                        System.out.println(s);
 
-            String parseArray[] = s.split("/");
-            for (String parseItem : parseArray) {
-                //System.out.println("parseItem--->" + parseItem);
-                if (parseItem.startsWith("nn@=")) {
-                    String nickName = parseItem.split("@=")[1];
-                    System.out.println("nickName--->" + nickName);
-                }
-                if (parseItem.startsWith("txt@=")) {
-                    String content = parseItem.split("@=")[1];
-                    System.out.println("content--->" + content);
+                        String parseArray[] = s.split("/");
+                        for (String parseItem : parseArray) {
+                            //System.out.println("parseItem--->" + parseItem);
+                            if (parseItem.startsWith("nn@=")) {
+                                String nickName = parseItem.split("@=")[1];
+                                System.out.println("nickName--->" + nickName);
+                            }
+                            if (parseItem.startsWith("txt@=")) {
+                                String content = parseItem.split("@=")[1];
+                                System.out.println("content--->" + content);
+                                display.asyncExec(
+                                        new Runnable() {
+                                            public void run() {
+                                                nickNameText.append(content);
+                                                contentText.append(content);
+                                            }
+                                        }
+                                );
+                            }
+                        }
+
+                        Thread.sleep(1);
+                        i++;
+                        System.out.println("zxl--->i--->" + i);
+                        if (i % 45 == 0) {
+                            send("type@=mrkl/", socket);
+                        }
+                    }
+                    //关闭链接
+                    //socket.close();
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
-
-            Thread.sleep(1);
-            i++;
-            System.out.println("zxl--->i--->" + i);
-            if (i % 45 == 0) {
-                send("type@=mrkl/", socket);
-            }
-        }
-        //关闭链接
-        //socket.close();
+        }).start();
     }
 
     /**
