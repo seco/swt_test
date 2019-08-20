@@ -92,7 +92,10 @@ public class BarrageMsgUtil {
                                             ti.setText(1, barrageMsgData.mContent);
 
                                             ScrollBar scrollBar = table.getVerticalBar();
+//                                            scrollBar.setVisible(true);
+//                                            scrollBar.setEnabled(true);
                                             scrollBar.setSelection(scrollBar.getMaximum());
+
                                         }
                                     }
                             );

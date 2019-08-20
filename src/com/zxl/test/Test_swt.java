@@ -21,7 +21,10 @@ public class Test_swt {
 
     private static Display mDisplay;
 
+    private static Table mBarrageMsgTable;
+
     public static void main(String[] args) {
+        System.out.println("zxl--->main thread--->" + Thread.currentThread());
         mDisplay = new Display();
         Shell shell = new Shell(mDisplay);
 
@@ -109,6 +112,7 @@ public class Test_swt {
 
 
         final Table table = new Table(panel, SWT.BORDER | SWT.FULL_SELECTION);
+        mBarrageMsgTable = table;
         table.setLayoutData(gTextData);
         table.setHeaderVisible(true);
         //table.setFont(SWTResourceManager.getFont("幼圆", 9, SWT.NORMAL));
@@ -219,7 +223,7 @@ public class Test_swt {
             @Override
             public void widgetSelected(SelectionEvent e) {
                 try {
-                    BarrageMsgUtil.start(mDisplay, panel, table);
+                    BarrageMsgUtil.start(mDisplay, panel, mBarrageMsgTable);
                 } catch (Exception exception) {
                     exception.printStackTrace();
                 }

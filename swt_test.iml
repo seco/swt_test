@@ -21,5 +21,7 @@
     <orderEntry type="sourceFolder" forTests="false" />
     <orderEntry type="library" name="javax.persistence" level="project" />
     <orderEntry type="library" name="swt" level="project" />
+    <orderEntry type="library" name="swt-3.7.2-cocoa-macosx-x86_64 (2)" level="project" />
+    <orderEntry type="library" name="javax.persistence" level="project" />
   </component>
 </module>
