@@ -1,7 +1,12 @@
 package com.zxl.test;
 
-import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.Text;
+import com.zxl.test.data.BarrageMsgData;
+import org.eclipse.swt.SWT;
+import org.eclipse.swt.custom.TableEditor;
+import org.eclipse.swt.graphics.Point;
+import org.eclipse.swt.graphics.Rectangle;
+import org.eclipse.swt.layout.GridData;
+import org.eclipse.swt.widgets.*;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -12,7 +17,9 @@ import java.util.Arrays;
 
 
 public class BarrageMsgUtil {
-    public static void start(Display display, Text nickNameText, Text contentText) throws IOException, InterruptedException {
+    public static boolean isLoop = true;
+
+    public static void start(Display display, Composite panel, Table table) throws IOException, InterruptedException {
 
         new Thread(new Runnable() {
             @Override
@@ -35,30 +42,60 @@ public class BarrageMsgUtil {
 
                     int i = 0;
                     //循环读取弹幕消息开始
-                    while (true) {
+                    while (isLoop) {
+
+                        System.out.println("zxl--->BarrageMsgUtil--->isLoop--->" + BarrageMsgUtil.isLoop);
+
                         byte[] msgBytes = read(socket);
                         String s = new String(Arrays.copyOfRange(msgBytes, 0, msgBytes.length));
                         System.out.println(s);
 
+                        BarrageMsgData barrageMsgData = new BarrageMsgData();
                         String parseArray[] = s.split("/");
                         for (String parseItem : parseArray) {
                             //System.out.println("parseItem--->" + parseItem);
+
                             if (parseItem.startsWith("nn@=")) {
                                 String nickName = parseItem.split("@=")[1];
                                 System.out.println("nickName--->" + nickName);
+
+                                barrageMsgData.mNickName = nickName;
                             }
                             if (parseItem.startsWith("txt@=")) {
                                 String content = parseItem.split("@=")[1];
                                 System.out.println("content--->" + content);
-                                display.asyncExec(
-                                        new Runnable() {
-                                            public void run() {
-                                                nickNameText.append(content);
-                                                contentText.append(content);
-                                            }
-                                        }
-                                );
+
+                                barrageMsgData.mContent = content;
                             }
+                        }
+
+                        if (barrageMsgData.mNickName != null && barrageMsgData.mNickName.length() > 0 && barrageMsgData.mContent != null && barrageMsgData.mContent.length() > 0) {
+                            display.asyncExec(
+                                    new Runnable() {
+                                        public void run() {
+                                            System.out.println("add TableItem");
+
+                                            Rectangle area = panel.getClientArea();
+                                            Point preferredSize = table.computeSize(SWT.DEFAULT, SWT.DEFAULT);
+                                            int width = area.width - 2 * table.getBorderWidth();
+                                            table.setSize(area.width, area.height);
+                                            table.getColumn(0).setWidth(width / 4);
+                                            table.getColumn(1).setWidth(width / 4);
+
+                                            TableEditor tableEditor = new TableEditor(table);
+                                            TableEditor tableEditor2 = new TableEditor(table);
+                                            tableEditor.grabHorizontal = true;
+                                            tableEditor2.grabHorizontal = true;
+
+                                            TableItem ti = new TableItem(table, SWT.NONE);
+                                            ti.setText(0, barrageMsgData.mNickName);
+                                            ti.setText(1, barrageMsgData.mContent);
+
+                                            ScrollBar scrollBar = table.getVerticalBar();
+                                            scrollBar.setSelection(scrollBar.getMaximum());
+                                        }
+                                    }
+                            );
                         }
 
                         Thread.sleep(1);
