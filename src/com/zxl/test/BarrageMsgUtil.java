@@ -1,6 +1,7 @@
 package com.zxl.test;
 
 import com.zxl.test.data.BarrageMsgData;
+import com.zxl.test.data.ChooseResultData;
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.TableEditor;
 import org.eclipse.swt.graphics.Point;
@@ -14,39 +15,47 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.util.Arrays;
+import java.util.Set;
 
 
 public class BarrageMsgUtil {
-    public static boolean isLoop = true;
+    public static boolean isLoop = false;
 
-    public static void start(Display display, Composite panel, Table table) throws IOException, InterruptedException {
+    public static Socket mSocket = null;
+    public static InputStream mInputStream = null;
+    public static OutputStream mOutputStream = null;
 
+    public static void start(String roomNum, Display display, Composite panel, Table table) throws IOException, InterruptedException {
+        System.out.println("roomNum--->" + roomNum);//85894
+        if (roomNum == null || roomNum.length() <= 0) {
+            return;
+        }
+        isLoop = true;
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    Socket socket = new Socket("openbarrage.douyutv.com", 8601);
+                    mSocket = new Socket("openbarrage.douyutv.com", 8601);
                     //发送登录请求(登入85894房间)
-                    String loginCMD = "type@=loginreq/roomid@=85894/";
-                    send(loginCMD, socket);
+                    String loginCMD = "type@=loginreq/roomid@=" + roomNum + "/";
+                    send(loginCMD, mSocket);
 
                     //读取登录请求消息
-                    byte[] bytes = read(socket);
+                    byte[] bytes = read(mSocket);
                     String msg = new String(Arrays.copyOfRange(bytes, 0, bytes.length));
                     System.out.println(msg);
 
 
                     //加入弹幕分组开始接收弹幕
                     String joinGroupCMD = "type@=joingroup/rid@=9999/gid@=-9999/";
-                    send(joinGroupCMD, socket);
+                    send(joinGroupCMD, mSocket);
 
-                    int i = 0;
+                    int i = 1;
+                    int msgIndex = 1;
                     //循环读取弹幕消息开始
                     while (isLoop) {
 
-                        System.out.println("zxl--->BarrageMsgUtil--->isLoop--->" + BarrageMsgUtil.isLoop);
-
-                        byte[] msgBytes = read(socket);
+                        byte[] msgBytes = read(mSocket);
                         String s = new String(Arrays.copyOfRange(msgBytes, 0, msgBytes.length));
                         System.out.println(s);
 
@@ -70,6 +79,22 @@ public class BarrageMsgUtil {
                         }
 
                         if (barrageMsgData.mNickName != null && barrageMsgData.mNickName.length() > 0 && barrageMsgData.mContent != null && barrageMsgData.mContent.length() > 0) {
+
+                            ChooseResultData chooseResultData = Test_swt.mChooseResultDataMap.get(barrageMsgData.mContent);
+                            if (chooseResultData != null && !chooseResultData.mNickNameList.contains(barrageMsgData.mNickName)) {
+                                chooseResultData.mChooseCount++;
+                                chooseResultData.mNickNameList.add(barrageMsgData.mNickName);
+
+                                int chooseCount = chooseResultData.mChooseCount;
+                                display.asyncExec(
+                                        new Runnable() {
+                                            public void run() {
+                                                chooseResultData.mTableItem.setText(chooseResultData.mChooseColumnIndex, String.valueOf(chooseCount));
+                                            }
+                                        });
+                            }
+
+                            int finalMsgIndex = msgIndex;
                             display.asyncExec(
                                     new Runnable() {
                                         public void run() {
@@ -88,24 +113,24 @@ public class BarrageMsgUtil {
                                             tableEditor2.grabHorizontal = true;
 
                                             TableItem ti = new TableItem(table, SWT.NONE);
-                                            ti.setText(0, barrageMsgData.mNickName);
+                                            ti.setText(0, finalMsgIndex + "." + barrageMsgData.mNickName);
                                             ti.setText(1, barrageMsgData.mContent);
 
                                             ScrollBar scrollBar = table.getVerticalBar();
 //                                            scrollBar.setVisible(true);
 //                                            scrollBar.setEnabled(true);
                                             scrollBar.setSelection(scrollBar.getMaximum());
-
                                         }
                                     }
                             );
+
+                            msgIndex++;
                         }
 
                         Thread.sleep(1);
                         i++;
-                        System.out.println("zxl--->i--->" + i);
                         if (i % 45 == 0) {
-                            send("type@=mrkl/", socket);
+                            send("type@=mrkl/", mSocket);
                         }
                     }
                     //关闭链接
@@ -115,6 +140,24 @@ public class BarrageMsgUtil {
                 }
             }
         }).start();
+    }
+
+    public static void stop() {
+        isLoop = false;
+        if (mSocket != null) {
+            try {
+                if (mOutputStream != null) {
+                    mOutputStream.close();
+                }
+                if (mInputStream != null) {
+                    mInputStream.close();
+                }
+                send("type@=logout/", mSocket);
+                mSocket.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 
     /**
@@ -148,9 +191,9 @@ public class BarrageMsgUtil {
             byteArray.write(end);
 
             //发送数据
-            OutputStream out = socket.getOutputStream();
-            out.write(byteArray.toByteArray());
-            out.flush();
+            mOutputStream = socket.getOutputStream();
+            mOutputStream.write(byteArray.toByteArray());
+            mOutputStream.flush();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -163,27 +206,26 @@ public class BarrageMsgUtil {
      */
     public static byte[] read(Socket socket) {
         try {
-            InputStream inputStream = socket.getInputStream();
+            mInputStream = socket.getInputStream();
             //下条信息的长度
             int contentLen = 0;
 
             //读取前4个字节，得到数据长度
-            byte[] bytes1 = readStream(inputStream, 0, 4);
+            byte[] bytes1 = readStream(mInputStream, 0, 4);
             contentLen = bytesToIntLittle(bytes1, 0); //用小端模式转换byte数组为
             //System.out.println("数据长度1:" + contentLen);
 
             //继续读取4个字节，得到第二个 数据长度
-            byte[] bytes2 = readStream(inputStream, 0, 4);
+            byte[] bytes2 = readStream(mInputStream, 0, 4);
             int contentLen2 = bytesToIntLittle(bytes2, 0);
             //System.out.println("数据长度2:" + contentLen2);
 
             //再次读取4个字节，得到消息类型
-            byte[] bytes3 = readStream(inputStream, 0, 4);
+            byte[] bytes3 = readStream(mInputStream, 0, 4);
             //将小端整数转换为大端整数
             int msgType = bytesToIntLittle(bytes3, 0);
             //System.out.println("消息类型:" + msgType);
 
-            System.out.println("zxl--->contentLen--->" + contentLen);
             if (contentLen < 8) {
                 return new ByteArrayOutputStream().toByteArray();
             }
@@ -194,7 +236,7 @@ public class BarrageMsgUtil {
             int readLen = 0;    //已读数据长度
             byte[] bytes = new byte[contentLen];
             ByteArrayOutputStream byteArray = new ByteArrayOutputStream();
-            while ((len = inputStream.read(bytes, 0, contentLen - readLen)) != -1) {
+            while ((len = mInputStream.read(bytes, 0, contentLen - readLen)) != -1) {
                 byteArray.write(bytes, 0, len);
                 readLen += len;
                 if (readLen == contentLen) {
