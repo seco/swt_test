@@ -6,7 +6,6 @@ import org.eclipse.swt.SWT;
 import org.eclipse.swt.custom.TableEditor;
 import org.eclipse.swt.graphics.Point;
 import org.eclipse.swt.graphics.Rectangle;
-import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.widgets.*;
 
 import java.io.ByteArrayOutputStream;
@@ -15,7 +14,8 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.util.Arrays;
-import java.util.Set;
+import java.util.HashMap;
+import java.util.Map;
 
 
 public class BarrageMsgUtil {
@@ -24,6 +24,8 @@ public class BarrageMsgUtil {
     public static Socket mSocket = null;
     public static InputStream mInputStream = null;
     public static OutputStream mOutputStream = null;
+
+    public static Map<String, ChooseResultData> mChooseResultDataMap = new HashMap<>();
 
     public static void start(String roomNum, Display display, Composite panel, Table table) throws IOException, InterruptedException {
         System.out.println("roomNum--->" + roomNum);//85894
@@ -57,7 +59,7 @@ public class BarrageMsgUtil {
 
                         byte[] msgBytes = read(mSocket);
                         String s = new String(Arrays.copyOfRange(msgBytes, 0, msgBytes.length));
-                        System.out.println(s);
+                        //System.out.println(s);
 
                         BarrageMsgData barrageMsgData = new BarrageMsgData();
                         String parseArray[] = s.split("/");
@@ -66,13 +68,13 @@ public class BarrageMsgUtil {
 
                             if (parseItem.startsWith("nn@=")) {
                                 String nickName = parseItem.split("@=")[1];
-                                System.out.println("nickName--->" + nickName);
+                                //System.out.println("nickName--->" + nickName);
 
                                 barrageMsgData.mNickName = nickName;
                             }
                             if (parseItem.startsWith("txt@=")) {
                                 String content = parseItem.split("@=")[1];
-                                System.out.println("content--->" + content);
+                                //System.out.println("content--->" + content);
 
                                 barrageMsgData.mContent = content;
                             }
@@ -80,7 +82,7 @@ public class BarrageMsgUtil {
 
                         if (barrageMsgData.mNickName != null && barrageMsgData.mNickName.length() > 0 && barrageMsgData.mContent != null && barrageMsgData.mContent.length() > 0) {
 
-                            ChooseResultData chooseResultData = Test_swt.mChooseResultDataMap.get(barrageMsgData.mContent);
+                            ChooseResultData chooseResultData = mChooseResultDataMap.get(barrageMsgData.mContent);
                             if (chooseResultData != null && !chooseResultData.mNickNameList.contains(barrageMsgData.mNickName)) {
                                 chooseResultData.mChooseCount++;
                                 chooseResultData.mNickNameList.add(barrageMsgData.mNickName);
@@ -89,6 +91,7 @@ public class BarrageMsgUtil {
                                 display.asyncExec(
                                         new Runnable() {
                                             public void run() {
+                                                System.out.println("chooseResultData add--->" + chooseResultData.mChooseColumnIndex + "--->" + chooseCount);
                                                 chooseResultData.mTableItem.setText(chooseResultData.mChooseColumnIndex, String.valueOf(chooseCount));
                                             }
                                         });
@@ -98,7 +101,7 @@ public class BarrageMsgUtil {
                             display.asyncExec(
                                     new Runnable() {
                                         public void run() {
-                                            System.out.println("add TableItem");
+                                            //System.out.println("add TableItem");
 
                                             Rectangle area = panel.getClientArea();
                                             Point preferredSize = table.computeSize(SWT.DEFAULT, SWT.DEFAULT);
@@ -116,10 +119,8 @@ public class BarrageMsgUtil {
                                             ti.setText(0, finalMsgIndex + "." + barrageMsgData.mNickName);
                                             ti.setText(1, barrageMsgData.mContent);
 
-                                            ScrollBar scrollBar = table.getVerticalBar();
-//                                            scrollBar.setVisible(true);
-//                                            scrollBar.setEnabled(true);
-                                            scrollBar.setSelection(scrollBar.getMaximum());
+//                                            ScrollBar scrollBar = table.getVerticalBar();
+//                                            scrollBar.setSelection(scrollBar.getMaximum());
                                         }
                                     }
                             );
