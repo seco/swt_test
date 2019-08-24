@@ -19,9 +19,7 @@
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
-    <orderEntry type="library" name="javax.persistence" level="project" />
-    <orderEntry type="library" name="swt-3.7.2-cocoa-macosx-x86_64 (2)" level="project" />
-    <orderEntry type="library" name="javax.persistence" level="project" />
-    <orderEntry type="library" exported="" name="org.eclipse.swt.win32.win32._64-4.3" level="project" />
+    <orderEntry type="library" exported="" name="org.eclipse.swt.win32.win32._64-4.3 (2)" level="project" />
+    <orderEntry type="library" name="swt-3.7.2-cocoa-macosx-x86_64" level="project" />
   </component>
 </module>

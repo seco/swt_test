@@ -58,7 +58,7 @@ public class BarrageMsgUtil {
                     while (isLoop) {
 
                         byte[] msgBytes = read(mSocket);
-                        String s = new String(Arrays.copyOfRange(msgBytes, 0, msgBytes.length));
+                        String s = new String(msgBytes, 0, msgBytes.length,"utf-8");
                         //System.out.println(s);
 
                         BarrageMsgData barrageMsgData = new BarrageMsgData();
